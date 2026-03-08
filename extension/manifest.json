@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "LockIn — Study Monitor",
+  "description": "Monitors your browser activity during LockIn study sessions",
+  "version": "1.0.0",
+  "permissions": [
+    "tabs",
+    "activeTab",
+    "storage",
+    "alarms"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost:3000/*",
+        "https://*.vercel.app/*"
+      ],
+      "js": ["content.js"]
+    },
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "exclude_matches": [
+        "http://localhost:3000/*",
+        "https://*.vercel.app/*"
+      ],
+      "js": ["content-overlay.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "externally_connectable": {
+    "matches": [
+      "http://localhost:3000/*",
+      "https://*.vercel.app/*"
+    ]
+  }
+}

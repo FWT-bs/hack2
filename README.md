@@ -1,36 +1,27 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LockIn — Demo
 
-## Getting Started
+Front-end demo: **group chat** and **blocked-domain focus state** (warning banner + lock overlay). No database or auth.
 
-First, run the development server:
+## Run
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 → **Open demo room**.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Chat:** Type and send; messages stay in memory (reset on refresh).
+- **Focus state:** Use the **Simulate** buttons (On task / Warning / Locked / Break) to see the warning banner and lock overlay.
+- **Lock overlay:** Click "Request accountability review" to open the break-request dialog (submit is demo-only).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Extension (optional)
 
-## Learn More
+Load the `extension/` folder in Chrome (Developer mode → Load unpacked). It reports your current tab’s domain to `POST /api/activity` every 5s. The demo room page polls `GET /api/activity/state` and updates the focus badge (and lock overlay when domain is blocked).
 
-To learn more about Next.js, take a look at the following resources:
+Allowed (on-task): e.g. docs.google.com, stackoverflow.com, localhost.  
+Blocked (locked): e.g. youtube.com, reddit.com, twitter.com.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT

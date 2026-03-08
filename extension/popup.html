@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LockIn</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 320px;
+      min-height: 200px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #e5e5e5;
+      padding: 16px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .logo {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .status-dot.active { background: #22c55e; }
+    .status-dot.inactive { background: #666; }
+    .card {
+      background: #1a1a1a;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .card-value {
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .focus-state {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .focus-state.on-task { background: rgba(34,197,94,0.2); color: #22c55e; }
+    .focus-state.warning { background: rgba(234,179,8,0.2); color: #eab308; }
+    .focus-state.locked { background: rgba(239,68,68,0.2); color: #ef4444; }
+    .focus-state.approved-break { background: rgba(59,130,246,0.2); color: #3b82f6; }
+    .domain-status {
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    .domain-status.allowed { color: #22c55e; }
+    .domain-status.blocked { color: #ef4444; }
+    .domain-status.unlisted { color: #eab308; }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 8px;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 6px;
+      background: #1a1a1a;
+      color: #e5e5e5;
+      font-size: 13px;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      margin-top: 8px;
+    }
+    .btn:hover { background: #262626; }
+    .inactive-msg {
+      text-align: center;
+      padding: 24px 0;
+      color: #888;
+      font-size: 13px;
+    }
+    .inactive-msg p { margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="logo">LockIn</span>
+    <span class="status-dot" id="statusDot"></span>
+  </div>
+  <div id="content"></div>
+  <script src="popup.js"></script>
+</body>
+</html>
