@@ -1,10 +1,16 @@
-// LockIn Demo — reports current tab domain to app; no auth.
+// LockIn — reports current tab domain to app.
+// When linked: pass user_id and optional room_id so the app can use DB rules.
+// See README in extension folder for device-linking flow.
 
 const API_BASE = "http://localhost:3000";
 const ALARM_NAME = "lockin-monitor";
 
-// Always monitor (demo: no session required)
 chrome.alarms.create(ALARM_NAME, { periodInMinutes: 5 / 60 });
+
+async function getStoredContext() {
+  const out = await chrome.storage.local.get(["user_id", "room_id"]);
+  return { user_id: out.user_id || null, room_id: out.room_id || null };
+}
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name !== ALARM_NAME) return;
@@ -21,15 +27,19 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     if (url.protocol !== "http:" && url.protocol !== "https:") return;
 
     const domain = url.hostname;
+    const { user_id, room_id } = await getStoredContext();
+    const body = {
+      domain,
+      url: tab.url,
+      timestamp: new Date().toISOString(),
+    };
+    if (user_id) body.user_id = user_id;
+    if (room_id) body.room_id = room_id;
 
     const response = await fetch(`${API_BASE}/api/activity`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        domain,
-        url: tab.url,
-        timestamp: new Date().toISOString(),
-      }),
+      body: JSON.stringify(body),
     });
 
     if (response.ok) {
@@ -105,10 +115,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       try {
         const hostname = message.hostname || "";
         if (!hostname) return { focusState: "on-task", status: "unlisted" };
+        const { user_id, room_id } = await getStoredContext();
+        const body = { domain: hostname };
+        if (user_id) body.user_id = user_id;
+        if (room_id) body.room_id = room_id;
         const response = await fetch(`${API_BASE}/api/activity`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ domain: hostname }),
+          body: JSON.stringify(body),
         });
         if (!response.ok) return { focusState: "on-task", status: "unlisted" };
         return await response.json();
@@ -121,11 +135,49 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === "GET_DOMAIN_LISTS") {
     (async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/activity/domains`);
+        const { room_id } = await getStoredContext();
+        let url = `${API_BASE}/api/activity/domains`;
+        if (room_id) url += `?room_id=${encodeURIComponent(room_id)}`;
+        const response = await fetch(url);
         if (!response.ok) return { allowed: [], blocked: [] };
         return await response.json();
       } catch (e) {
         return { allowed: [], blocked: [] };
+      }
+    })().then(sendResponse);
+    return true;
+  }
+  if (message.type === "FOCUS_EVENT") {
+    (async () => {
+      try {
+        const payload = message.payload || {};
+        await fetch(`${API_BASE}/api/focus-events`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event_type: payload.event_type,
+            domain: payload.domain,
+            url: payload.url,
+          }),
+        });
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, error: String(e) };
+      }
+    })().then(sendResponse);
+    return true;
+  }
+  if (message.type === "SET_LINK_CONTEXT") {
+    (async () => {
+      try {
+        const { user_id, room_id } = message;
+        await chrome.storage.local.set({
+          ...(user_id != null && { user_id }),
+          ...(room_id != null && { room_id }),
+        });
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, error: String(e) };
       }
     })().then(sendResponse);
     return true;

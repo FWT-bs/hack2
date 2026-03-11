@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState } from "react"
 import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
@@ -253,6 +254,23 @@ const AVATAR_NAMES = ["taylor", "jordan", "casey", "morgan", "riley"]
 
 export default function Home() {
   const [authOpen, setAuthOpen] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
+
+  async function handleGoogleAuth() {
+    setGoogleLoading(true)
+    const supabase = createClient()
+    const redirectUrl = typeof window !== "undefined" ? `${window.location.origin}/home` : "/home"
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: redirectUrl },
+    })
+    if (error) {
+      // For now we just stop the loading state; surface details on dedicated auth pages.
+      setGoogleLoading(false)
+      // eslint-disable-next-line no-console
+      console.error(error.message)
+    }
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -271,10 +289,12 @@ export default function Home() {
             <Button
               size="sm"
               className="hidden sm:inline-flex gap-1.5 rounded-xl px-4 h-10 font-semibold hover:shadow-lg hover:shadow-primary/15 transition-all duration-300"
-              onClick={() => setAuthOpen(true)}
+              asChild
             >
-              Find your study group
-              <ArrowRight className="h-3.5 w-3.5" />
+              <Link href="/signup">
+                Find your study group
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
             </Button>
             <Button
               size="sm"
@@ -282,18 +302,17 @@ export default function Home() {
               className="hidden sm:inline-flex rounded-xl h-10 px-4"
               asChild
             >
-              <a href="https://example.com/chrome-extension" target="_blank" rel="noreferrer">
-                Download Chrome extension
-              </a>
+              <Link href="#preview">Preview a study room</Link>
             </Button>
-            {/* Mobile: keep the primary CTA */}
             <Button
               size="sm"
               className="sm:hidden gap-1.5 rounded-xl h-10 px-3"
-              onClick={() => setAuthOpen(true)}
+              asChild
             >
-              Find group
-              <ArrowRight className="h-3.5 w-3.5" />
+              <Link href="/signup">
+                Find group
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
             </Button>
           </div>
         </div>
@@ -342,15 +361,14 @@ export default function Home() {
                   className="flex flex-col sm:flex-row gap-3 animate-fade-in-up"
                   style={{ animationDelay: "350ms" }}
                 >
-                  <Link href="/room">
-                    <Button
-                      size="lg"
-                      className="w-full sm:w-auto gap-2 font-semibold rounded-2xl px-5 h-12 hover:shadow-xl hover:shadow-primary/18 hover:-translate-y-0.5 transition-all duration-300"
-                    >
-                      Find your study group
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  </Link>
+                  <Button
+                    size="lg"
+                    className="w-full sm:w-auto gap-2 font-semibold rounded-2xl px-5 h-12 hover:shadow-xl hover:shadow-primary/18 hover:-translate-y-0.5 transition-all duration-300"
+                    onClick={() => setAuthOpen(true)}
+                  >
+                    Find your study group
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
                   <Link href="#preview" className="w-full sm:w-auto">
                     <Button
                       size="lg"
@@ -396,8 +414,8 @@ export default function Home() {
                 {/* Mini feature pills */}
                 <div className="grid grid-cols-2 gap-3 mt-8">
                   {[
-                    { icon: Chrome, label: "Extension powered", sub: "Gentle overlays on distracting tabs", color: "text-primary", bg: "bg-primary/10" },
                     { icon: CheckCircle2, label: "Group accountability", sub: "Shared goal + small social pressure", color: "text-foreground", bg: "bg-muted" },
+                    { icon: Users, label: "Friend groups, not managers", sub: "Soft nudges and shared goals", color: "text-primary", bg: "bg-primary/10" },
                   ].map(({ icon: Icon, label, sub, color, bg }) => (
                     <div
                       key={label}
@@ -440,6 +458,17 @@ export default function Home() {
             </div>
           </div>
         </Reveal>
+
+        {/* ── What makes LockIn different ── */}
+        <section className="container max-w-6xl mx-auto px-4 py-16 md:py-20">
+          <Reveal className="text-center space-y-2 mb-14">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">What makes LockIn different</p>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">For friend groups, not managers</h2>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+              It&apos;s about soft nudges and shared goals. You see when friends are studying, hop into a room together, and gently keep each other on track.
+            </p>
+          </Reveal>
+        </section>
 
         {/* ── Features ── */}
         <section className="container max-w-6xl mx-auto px-4 py-16 md:py-20">
@@ -492,15 +521,28 @@ export default function Home() {
 
               <Reveal direction="right" delay={100}>
                 <div className="space-y-0">
-                  <StepCard step={1} icon={Chrome} title="Install the extension"
-                    description="Add LockIn to Chrome so it can see your current tab and show the focus overlay on blocked sites." />
-                  <StepCard step={2} icon={Users} title="Join or create a study room"
-                    description="Share a room code with your group, set your session goal and duration, and pick your blocked/allowed sites." />
-                  <StepCard step={3} icon={BookOpen} title="Study together"
-                    description="Chat, check in, and stay on task. If you drift, your group (and the extension) will notice and gently bring you back." />
+                  <StepCard step={1} icon={Users} title="Join or create a study room"
+                    description="Start a room, invite friends, set your session goal and duration. Pick your blocked and allowed sites together." />
+                  <StepCard step={2} icon={BookOpen} title="Study together"
+                    description="Chat, check in, and stay on task. If you drift, your group will notice and gently bring you back." />
+                  <StepCard step={3} icon={Chrome} title="Optional: install the extension"
+                    description="When you start a focus session, the extension can show a gentle overlay on distracting tabs. It only runs during sessions — not 24/7." />
                 </div>
               </Reveal>
             </div>
+          </div>
+        </section>
+
+        {/* ── Extension (optional helper) ── */}
+        <section className="py-16 md:py-20 border-t border-border/30">
+          <div className="container max-w-6xl mx-auto px-4">
+            <Reveal className="text-center space-y-2 mb-10">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Optional</p>
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">A gentle extension that has your back</h2>
+              <p className="text-sm text-muted-foreground max-w-xl mx-auto leading-relaxed">
+                When you start a focus room, the LockIn extension can notice when you wander to certain sites, show a soft overlay on that tab, and log oops-moments into your room recap. It never runs when you&apos;re not in a session.
+              </p>
+            </Reveal>
           </div>
         </section>
 
@@ -518,7 +560,7 @@ export default function Home() {
                       Sign in or create your study profile
                     </h2>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      This demo doesn&apos;t store real accounts — try the flows below to see how LockIn could feel as a full social study platform.
+                      Create an account to start a room, invite friends, and keep each other on track.
                     </p>
                   </div>
                   <ul className="space-y-2.5">
@@ -547,42 +589,57 @@ export default function Home() {
                     </TabsList>
 
                     <TabsContent value="login" className="space-y-4">
-                      <form className="space-y-3" onSubmit={(e) => e.preventDefault()}>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="login-email" className="text-xs">Email</Label>
-                          <Input id="login-email" type="email" placeholder="you@example.com" className="h-9" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="login-password" className="text-xs">Password</Label>
-                          <Input id="login-password" type="password" placeholder="••••••••" className="h-9" />
-                        </div>
-                        <Button className="w-full mt-1 font-semibold hover:shadow-lg hover:shadow-primary/20 transition-all duration-300" size="sm">
-                          Sign in (demo)
+                      <div className="space-y-3">
+                        <Button
+                          type="button"
+                          className="w-full font-semibold rounded-xl gap-2 justify-center hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5 transition-all duration-300"
+                          size="sm"
+                          onClick={handleGoogleAuth}
+                          disabled={googleLoading}
+                        >
+                          <Chrome className="h-4 w-4" />
+                          {googleLoading ? "Connecting to Google…" : "Continue with Google"}
                         </Button>
-                      </form>
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                          <span className="flex-1 h-px bg-border" />
+                          <span>or continue with email</span>
+                          <span className="flex-1 h-px bg-border" />
+                        </div>
+                        <Button
+                          className="w-full font-semibold hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 rounded-xl"
+                          size="sm"
+                          asChild
+                        >
+                          <Link href="/login">Sign in with email</Link>
+                        </Button>
+                      </div>
                     </TabsContent>
 
                     <TabsContent value="signup" className="space-y-4">
-                      <form className="space-y-3" onSubmit={(e) => e.preventDefault()}>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="signup-name" className="text-xs">Display name</Label>
-                          <Input id="signup-name" type="text" placeholder="Your name" className="h-9" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="signup-email" className="text-xs">Email</Label>
-                          <Input id="signup-email" type="email" placeholder="you@example.com" className="h-9" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="signup-password" className="text-xs">Password</Label>
-                          <Input id="signup-password" type="password" placeholder="••••••••" className="h-9" />
-                        </div>
-                        <Button className="w-full mt-1 font-semibold hover:shadow-lg hover:shadow-primary/20 transition-all duration-300" size="sm">
-                          Sign up (demo)
+                      <div className="space-y-3">
+                        <Button
+                          type="button"
+                          className="w-full font-semibold rounded-xl gap-2 justify-center hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5 transition-all duration-300"
+                          size="sm"
+                          onClick={handleGoogleAuth}
+                          disabled={googleLoading}
+                        >
+                          <Chrome className="h-4 w-4" />
+                          {googleLoading ? "Connecting to Google…" : "Continue with Google"}
                         </Button>
-                      </form>
-                      <p className="text-center text-[11px] text-muted-foreground">
-                        By signing up you agree to our made-up Terms of Service. 😄
-                      </p>
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                          <span className="flex-1 h-px bg-border" />
+                          <span>or continue with email</span>
+                          <span className="flex-1 h-px bg-border" />
+                        </div>
+                        <Button
+                          className="w-full font-semibold hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 rounded-xl"
+                          size="sm"
+                          asChild
+                        >
+                          <Link href="/signup">Sign up with email</Link>
+                        </Button>
+                      </div>
                     </TabsContent>
                   </Tabs>
                 </div>
@@ -596,59 +653,38 @@ export default function Home() {
       <Dialog open={authOpen} onOpenChange={setAuthOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Join your study room</DialogTitle>
+            <DialogTitle>Start a room</DialogTitle>
             <DialogDescription>
-              Sign in or sign up (demo only) to see how a real LockIn flow could feel, then jump into a study group.
+              Sign in or create an account to start a study room and invite friends.
             </DialogDescription>
           </DialogHeader>
-          <Tabs defaultValue="login" className="space-y-4 mt-2">
-            <TabsList className="grid grid-cols-2 w-full">
-              <TabsTrigger value="login">Sign in</TabsTrigger>
-              <TabsTrigger value="signup">Sign up</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="login" className="space-y-3">
-              <form className="space-y-3" onSubmit={(e) => e.preventDefault()}>
-                <div className="space-y-1.5">
-                  <Label htmlFor="dialog-login-email" className="text-xs">Email</Label>
-                  <Input id="dialog-login-email" type="email" placeholder="you@example.com" className="h-9" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="dialog-login-password" className="text-xs">Password</Label>
-                  <Input id="dialog-login-password" type="password" placeholder="••••••••" className="h-9" />
-                </div>
-                <Button
-                  className="w-full mt-1 font-semibold hover:shadow-lg hover:shadow-primary/20 transition-all duration-300"
-                  size="sm"
-                  type="submit"
-                  onClick={() => setAuthOpen(false)}
-                >
-                  Continue (demo)
-                </Button>
-              </form>
-            </TabsContent>
-
-            <TabsContent value="signup" className="space-y-3">
-              <form className="space-y-3" onSubmit={(e) => e.preventDefault()}>
-                <div className="space-y-1.5">
-                  <Label htmlFor="dialog-signup-name" className="text-xs">Display name</Label>
-                  <Input id="dialog-signup-name" type="text" placeholder="Your name" className="h-9" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="dialog-signup-email" className="text-xs">Email</Label>
-                  <Input id="dialog-signup-email" type="email" placeholder="you@example.com" className="h-9" />
-                </div>
-                <Button
-                  className="w-full mt-1 font-semibold hover:shadow-lg hover:shadow-primary/20 transition-all duration-300"
-                  size="sm"
-                  type="submit"
-                  onClick={() => setAuthOpen(false)}
-                >
-                  Continue (demo)
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+          <div className="flex flex-col gap-3 mt-4">
+            <Button
+              type="button"
+              className="w-full font-semibold rounded-xl gap-2 justify-center hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5 transition-all duration-300"
+              size="lg"
+              onClick={handleGoogleAuth}
+              disabled={googleLoading}
+            >
+              <Chrome className="h-5 w-5" />
+              {googleLoading ? "Connecting to Google…" : "Continue with Google"}
+            </Button>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="flex-1 h-px bg-border" />
+              <span>or continue with email</span>
+              <span className="flex-1 h-px bg-border" />
+            </div>
+            <Button variant="outline" className="w-full rounded-xl" size="lg" asChild>
+              <Link href="/signup" onClick={() => setAuthOpen(false)}>
+                Sign up with email
+              </Link>
+            </Button>
+            <Button variant="ghost" className="w-full rounded-xl" size="lg" asChild>
+              <Link href="/login" onClick={() => setAuthOpen(false)}>
+                Sign in with email
+              </Link>
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -661,12 +697,12 @@ export default function Home() {
                 <Lock className="h-3 w-3 text-primary-foreground" />
               </div>
               <span className="font-bold text-sm">LockIn</span>
-              <span className="text-muted-foreground text-xs ml-1">— social focus demo</span>
+              <span className="text-muted-foreground text-xs ml-1">— focus with friends</span>
             </div>
 
             <div className="flex items-center gap-6 text-xs text-muted-foreground">
-              <a href="chrome://extensions" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors duration-200">Install extension</a>
-              <span>No real accounts stored.</span>
+              <Link href="/login" className="hover:text-foreground transition-colors duration-200">Sign in</Link>
+              <Link href="/signup" className="hover:text-foreground transition-colors duration-200">Sign up</Link>
             </div>
           </div>
         </div>

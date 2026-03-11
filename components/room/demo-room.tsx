@@ -15,7 +15,7 @@ import { DomainListsButtons } from "./domain-lists-buttons"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { Lock, ChevronDown } from "lucide-react"
+import { Lock, ChevronDown, LogOut } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,8 +54,18 @@ const SIMULATE_OPTIONS: { value: FocusState; label: string; emoji: string }[] = 
   { value: "approved-break", label: "On Break", emoji: "🔵" },
 ]
 
-export function DemoRoom() {
-  const [messages, setMessages] = useState<DemoMessage[]>(() => [
+type DemoRoomProps = {
+  roomId?: string
+  roomName?: string
+  roomTopic?: string
+  messages?: DemoMessage[]
+  currentUserId?: string
+  onSendMessage?: (content: string) => void | Promise<void>
+  onLeaveRoom?: () => void | Promise<void>
+}
+
+export function DemoRoom({ roomId, roomName, roomTopic, messages: externalMessages, currentUserId: externalUserId, onSendMessage, onLeaveRoom }: DemoRoomProps) {
+  const [mockMessages, setMockMessages] = useState<DemoMessage[]>(() => [
     { id: "1", user_id: "2", content: "joined the room",     type: "system",  created_at: new Date(Date.now() - 120000).toISOString(), displayName: "Alex" },
     { id: "2", user_id: "3", content: "joined the room",     type: "system",  created_at: new Date(Date.now() - 60000).toISOString(),  displayName: "Sam"  },
     { id: "3", user_id: "2", content: "Ready to focus! 📚",  type: "message", created_at: new Date(Date.now() - 45000).toISOString(), displayName: "Alex" },
@@ -64,9 +74,28 @@ export function DemoRoom() {
   const [focusState, setFocusState]       = useState<FocusState>("on-task")
   const [breakDialogOpen, setBreakDialogOpen] = useState(false)
   const [myRequestPending, setMyRequestPending] = useState(false)
-  const userId = "1"
+  const [showExtensionHint, setShowExtensionHint] = useState(false)
+
+  const useRealData = Boolean(roomId && externalMessages && externalUserId != null && onSendMessage)
+  const messages = useRealData ? (externalMessages ?? []) : mockMessages
+  const userId = (useRealData ? externalUserId : "1") ?? "1"
+
+  const sendMessage = useCallback(
+    (content: string) => {
+      if (useRealData && onSendMessage) {
+        void onSendMessage(content)
+        return
+      }
+      setMockMessages((prev) => [
+        ...prev,
+        { id: String(Date.now()), user_id: "1", content, type: "message", created_at: new Date().toISOString(), displayName: "You" },
+      ])
+    },
+    [useRealData, onSendMessage]
+  )
 
   useEffect(() => {
+    if (useRealData) return
     let cancelled = false
     const poll = async () => {
       try {
@@ -79,14 +108,16 @@ export function DemoRoom() {
     }
     const t = setInterval(poll, 2000)
     return () => { cancelled = true; clearInterval(t) }
-  }, [])
+  }, [useRealData])
 
-  const sendMessage = useCallback((content: string) => {
-    setMessages((prev) => [
-      ...prev,
-      { id: String(Date.now()), user_id: userId, content, type: "message", created_at: new Date().toISOString(), displayName: "You" },
-    ])
-  }, [])
+  useEffect(() => {
+    if (!useRealData) return
+    // Light-weight extension detection, similar to CheckFocusButton.
+    const timer = setTimeout(() => {
+      setShowExtensionHint(true)
+    }, 4000)
+    return () => clearTimeout(timer)
+  }, [useRealData])
 
   return (
     <div className="min-h-screen flex flex-col bg-background relative">
@@ -100,7 +131,7 @@ export function DemoRoom() {
       {/* Header */}
       <header className="border-b border-border/30 bg-background/80 backdrop-blur-md sticky top-0 z-20">
         <div className="container max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
-          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0">
+          <Link href={roomId ? "/home" : "/"} className="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0">
             <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center">
               <Lock className="h-3 w-3 text-primary-foreground" />
             </div>
@@ -108,6 +139,12 @@ export function DemoRoom() {
           </Link>
 
           <div className="flex items-center gap-2 flex-wrap justify-end">
+            {useRealData && onLeaveRoom && (
+              <Button variant="outline" size="sm" className="rounded-lg gap-1.5 text-xs" onClick={() => onLeaveRoom()}>
+                <LogOut className="h-3.5 w-3.5" />
+                Leave room
+              </Button>
+            )}
             <CheckFocusButton onFocusUpdate={setFocusState} />
             <TabSearchButton />
             <DomainListsButtons />
@@ -147,7 +184,7 @@ export function DemoRoom() {
         {/* Room header — no card wrapper */}
         <div className="animate-fade-in-up">
           <RoomHeader
-            topicName={MOCK_TITLE}
+            topicName={roomTopic ?? MOCK_TITLE}
             topicIcon="💻"
             startedAt={MOCK_STARTED_AT}
             durationMinutes={MOCK_DURATION}
@@ -198,18 +235,51 @@ export function DemoRoom() {
           </div>
         )}
 
+        {showExtensionHint && (
+          <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 flex items-start justify-between gap-3 animate-slide-down">
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-foreground">Make this easier with the Chrome extension</p>
+              <p className="text-xs text-muted-foreground">
+                LockIn can gently notice when you wander to distracting sites and nudge you back here — only while this room is active.
+              </p>
+            </div>
+            <div className="flex flex-col gap-1 items-end shrink-0">
+              <Button
+                size="sm"
+                className="rounded-lg gap-1.5 motion-cta motion-cta-hover"
+                asChild
+              >
+                <a
+                  href="https://chromewebstore.google.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Install extension
+                </a>
+              </Button>
+              <button
+                type="button"
+                className="text-[11px] text-muted-foreground hover:text-foreground"
+                onClick={() => setShowExtensionHint(false)}
+              >
+                Not now
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Room grid */}
         <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
 
           {/* Left column */}
           <div className="space-y-4 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
             <div className="flex items-center gap-3">
-              <h2 className="text-lg font-bold tracking-tight">Study Room</h2>
+              <h2 className="text-lg font-bold tracking-tight">{roomName ?? "Study Room"}</h2>
               <FocusStatusBadge state={focusState} />
             </div>
 
             {/* Session goal — no card, just floating */}
-            <SessionGoalCard title={MOCK_TITLE} goal={MOCK_GOAL} />
+            <SessionGoalCard title={roomTopic ?? MOCK_TITLE} goal={MOCK_GOAL} />
 
             {/* Chat panel — glass, no heavy card */}
             <div

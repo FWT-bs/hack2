@@ -235,3 +235,17 @@ html {
   background-size: 200% 200%;
   animation: gradient-shift 8s ease infinite;
 }
+
+@utility motion-cta {
+  @apply transition-all duration-300;
+  transform-origin: center;
+}
+
+@utility motion-cta-hover {
+  @apply hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/25;
+}
+
+@utility motion-pill {
+  @apply transition-all duration-200;
+}
+

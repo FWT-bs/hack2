@@ -15,6 +15,10 @@ Open http://localhost:3000 → **Open demo room**.
 - **Focus state:** Use the **Simulate** buttons (On task / Warning / Locked / Break) to see the warning banner and lock overlay.
 - **Lock overlay:** Click "Request accountability review" to open the break-request dialog (submit is demo-only).
 
+## Supabase / Auth
+
+- **Disable email verification:** In [Supabase Dashboard](https://supabase.com/dashboard) → **Authentication** → **Providers** → **Email** → turn **off** “Confirm email”. Users can then sign in immediately after signup without clicking a confirmation link.
+
 ## Extension (optional)
 
 Load the `extension/` folder in Chrome (Developer mode → Load unpacked). It reports your current tab’s domain to `POST /api/activity` every 5s. The demo room page polls `GET /api/activity/state` and updates the focus badge (and lock overlay when domain is blocked).

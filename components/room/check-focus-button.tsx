@@ -75,13 +75,7 @@ export function CheckFocusButton({ onFocusUpdate }: Props) {
 
   return (
     <div className="flex flex-col gap-1">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={checkFocus}
-        disabled={loading}
-        className="gap-2"
-      >
+      <Button variant="outline" size="sm" onClick={checkFocus} disabled={loading} className="gap-2 motion-cta motion-cta-hover">
         {loading ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
