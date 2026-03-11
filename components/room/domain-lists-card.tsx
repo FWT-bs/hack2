@@ -5,11 +5,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ShieldCheck, ShieldX, Plus, X, Loader2 } from "lucide-react"
+import { ShieldCheck, ShieldX, Plus, X, Loader2, UserCircle2 } from "lucide-react"
 import { toast } from "sonner"
 
 function normalize(domain: string): string {
   return domain.replace(/^www\./, "").toLowerCase().trim()
+}
+
+type AuditEvent = {
+  id: number
+  domain: string
+  list: "allowed" | "blocked"
+  action: "add" | "remove"
+  actor: string
+  createdAt: string
 }
 
 export function DomainListsCard() {
@@ -19,15 +28,15 @@ export function DomainListsCard() {
   const [addAllowedInput, setAddAllowedInput] = useState("")
   const [addBlockedInput, setAddBlockedInput] = useState("")
   const [busy, setBusy] = useState(false)
+  const [audit, setAudit] = useState<AuditEvent[]>([])
 
   const fetchLists = useCallback(async () => {
     try {
       const res = await fetch("/api/activity/domains")
-      if (res.ok) {
-        const data = await res.json()
-        setAllowed(data.allowed || [])
-        setBlocked(data.blocked || [])
-      }
+      if (!res.ok) return
+      const data = await res.json()
+      setAllowed(data.allowed || [])
+      setBlocked(data.blocked || [])
     } catch {
       toast.error("Could not load domain lists")
     } finally {
@@ -78,11 +87,35 @@ export function DomainListsCard() {
       return
     }
     setAddAllowedInput("")
+    const actor = "You"
+    setAudit((prev) => [
+      {
+        id: Date.now(),
+        domain: d,
+        list: "allowed",
+        action: "add",
+        actor,
+        createdAt: new Date().toISOString(),
+      },
+      ...prev,
+    ])
     postUpdate({ addAllowed: [d] })
     toast.success("Added to allowed")
   }
 
   function handleRemoveAllowed(domain: string) {
+    const actor = "You"
+    setAudit((prev) => [
+      {
+        id: Date.now(),
+        domain,
+        list: "allowed",
+        action: "remove",
+        actor,
+        createdAt: new Date().toISOString(),
+      },
+      ...prev,
+    ])
     postUpdate({ removeAllowed: [domain] })
     toast.success("Removed from allowed")
   }
@@ -102,11 +135,35 @@ export function DomainListsCard() {
       return
     }
     setAddBlockedInput("")
+    const actor = "You"
+    setAudit((prev) => [
+      {
+        id: Date.now() + 1,
+        domain: d,
+        list: "blocked",
+        action: "add",
+        actor,
+        createdAt: new Date().toISOString(),
+      },
+      ...prev,
+    ])
     postUpdate({ addBlocked: [d] })
     toast.success("Added to blocked")
   }
 
   function handleRemoveBlocked(domain: string) {
+    const actor = "You"
+    setAudit((prev) => [
+      {
+        id: Date.now() + 2,
+        domain,
+        list: "blocked",
+        action: "remove",
+        actor,
+        createdAt: new Date().toISOString(),
+      },
+      ...prev,
+    ])
     postUpdate({ removeBlocked: [domain] })
     toast.success("Removed from blocked")
   }
@@ -210,6 +267,31 @@ export function DomainListsCard() {
               Add
             </Button>
           </div>
+        </div>
+
+        {/* Audit log (per room, this browser only) */}
+        <div className="space-y-2 border-t pt-4">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <UserCircle2 className="h-4 w-4 text-muted-foreground" />
+            Audit log
+          </div>
+          {audit.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              No changes yet. When someone adds or removes a domain in this room, it will show up here.
+            </p>
+          ) : (
+            <ul className="space-y-1.5 max-h-32 overflow-y-auto text-xs">
+              {audit.map((e) => (
+                <li key={e.id} className="flex items-center gap-2 text-muted-foreground">
+                  <span className={e.list === "blocked" ? "text-red-400" : "text-green-400"}>
+                    {e.list === "blocked" ? "Blocked" : "Allowed"}
+                  </span>
+                  <span className="font-mono">{e.domain}</span>
+                  <span>— {e.action === "add" ? "added by" : "removed by"} {e.actor}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </CardContent>
     </Card>

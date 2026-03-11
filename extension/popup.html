@@ -6,98 +6,247 @@
   <title>LockIn</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    @keyframes bg-flow {
+      0%   { background-position: 0%   50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0%   50%; }
+    }
+
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0);    }
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 0.6; transform: scale(1);   }
+      50%       { opacity: 1;   transform: scale(1.25); }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0);   }
+      50%       { transform: translateY(-3px); }
+    }
+
     body {
       width: 320px;
-      min-height: 200px;
+      min-height: 210px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0a0a0a;
-      color: #e5e5e5;
-      padding: 16px;
+      background: linear-gradient(135deg, #06060f, #0d0d22, #060c18, #0a0616);
+      background-size: 300% 300%;
+      animation: bg-flow 12s ease infinite;
+      color: #e2e2f0;
+      padding: 18px 20px 20px;
+      overflow: hidden;
     }
+
+    /* Decorative background orbs */
+    body::before {
+      content: '';
+      position: absolute;
+      top: -40px; right: -40px;
+      width: 160px; height: 160px;
+      background: radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    body::after {
+      content: '';
+      position: absolute;
+      bottom: -30px; left: -30px;
+      width: 120px; height: 120px;
+      background: radial-gradient(circle, rgba(139,92,246,0.14) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    /* ── Header ── */
     .header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 16px;
+      margin-bottom: 18px;
+      animation: fade-up 0.5s ease both;
     }
+
+    .logo-wrap {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .logo-icon {
+      width: 24px; height: 24px;
+      background: rgba(99,102,241,0.9);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: float 6s ease-in-out infinite;
+    }
+
     .logo {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 700;
-      letter-spacing: -0.5px;
+      letter-spacing: -0.4px;
+      color: #f0f0fa;
     }
+
     .status-dot {
-      width: 8px;
-      height: 8px;
+      width: 8px; height: 8px;
       border-radius: 50%;
-      display: inline-block;
     }
-    .status-dot.active { background: #22c55e; }
-    .status-dot.inactive { background: #666; }
-    .card {
-      background: #1a1a1a;
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 12px;
+    .status-dot.active {
+      background: #22c55e;
+      animation: pulse-dot 2s ease-in-out infinite;
+      box-shadow: 0 0 8px rgba(34,197,94,0.5);
     }
-    .card-title {
-      font-size: 11px;
-      color: #888;
+    .status-dot.inactive { background: #3f3f5a; }
+
+    /* ── Content sections float directly on bg — no card boxes ── */
+    .section {
+      margin-bottom: 14px;
+      animation: fade-up 0.55s ease both;
+    }
+    .section:nth-child(2) { animation-delay: 60ms;  }
+    .section:nth-child(3) { animation-delay: 120ms; }
+    .section:nth-child(4) { animation-delay: 180ms; }
+
+    .section-label {
+      font-size: 9px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 6px;
+      letter-spacing: 0.12em;
+      color: rgba(180,180,220,0.5);
+      font-weight: 600;
+      margin-bottom: 5px;
     }
-    .card-value {
-      font-size: 14px;
+
+    /* Focus state pill */
+    .focus-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px 4px 8px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+    .focus-pill .pill-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+    }
+    .focus-pill.on-task        { background: rgba(34,197,94,0.12);  color: #4ade80; border-color: rgba(34,197,94,0.25);  }
+    .focus-pill.on-task .pill-dot  { background: #22c55e; animation: pulse-dot 2s ease-in-out infinite; }
+    .focus-pill.warning        { background: rgba(234,179,8,0.12);  color: #fbbf24; border-color: rgba(234,179,8,0.25);  }
+    .focus-pill.warning .pill-dot  { background: #eab308; animation: pulse-dot 2s ease-in-out infinite; }
+    .focus-pill.locked         { background: rgba(239,68,68,0.12);  color: #f87171; border-color: rgba(239,68,68,0.25);  }
+    .focus-pill.locked .pill-dot   { background: #ef4444; animation: pulse-dot 2s ease-in-out infinite; }
+    .focus-pill.approved-break { background: rgba(99,102,241,0.12); color: #818cf8; border-color: rgba(99,102,241,0.25); }
+    .focus-pill.approved-break .pill-dot { background: #6366f1; animation: pulse-dot 2s ease-in-out infinite; }
+
+    /* Domain — floats as text */
+    .domain-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .domain-name {
+      font-size: 13px;
       font-weight: 500;
+      color: #c4c4e0;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px;
     }
-    .focus-state {
-      display: inline-block;
+
+    .domain-badge {
+      font-size: 10px;
+      font-weight: 600;
       padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: 500;
+      border-radius: 10px;
+      flex-shrink: 0;
     }
-    .focus-state.on-task { background: rgba(34,197,94,0.2); color: #22c55e; }
-    .focus-state.warning { background: rgba(234,179,8,0.2); color: #eab308; }
-    .focus-state.locked { background: rgba(239,68,68,0.2); color: #ef4444; }
-    .focus-state.approved-break { background: rgba(59,130,246,0.2); color: #3b82f6; }
-    .domain-status {
-      font-size: 12px;
+    .domain-badge.allowed  { background: rgba(34,197,94,0.15);  color: #4ade80; }
+    .domain-badge.blocked  { background: rgba(239,68,68,0.15);  color: #f87171; }
+    .domain-badge.unlisted { background: rgba(234,179,8,0.12);  color: #fbbf24; }
+
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: rgba(255,255,255,0.06);
+      margin: 10px 0;
+    }
+
+    /* CTA button — floating */
+    .cta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 9px 16px;
+      background: rgba(99,102,241,0.85);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+      animation: fade-up 0.6s 200ms ease both;
       margin-top: 4px;
     }
-    .domain-status.allowed { color: #22c55e; }
-    .domain-status.blocked { color: #ef4444; }
-    .domain-status.unlisted { color: #eab308; }
-    .btn {
-      display: block;
-      width: 100%;
-      padding: 8px;
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 6px;
-      background: #1a1a1a;
-      color: #e5e5e5;
-      font-size: 13px;
-      cursor: pointer;
-      text-align: center;
-      text-decoration: none;
-      margin-top: 8px;
+    .cta:hover {
+      background: rgba(99,102,241,1);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(99,102,241,0.35);
     }
-    .btn:hover { background: #262626; }
+
+    /* Inactive state */
     .inactive-msg {
       text-align: center;
-      padding: 24px 0;
-      color: #888;
-      font-size: 13px;
+      padding: 28px 0 16px;
+      animation: fade-up 0.5s ease both;
     }
-    .inactive-msg p { margin-top: 8px; }
+    .inactive-emoji {
+      font-size: 28px;
+      margin-bottom: 10px;
+      display: block;
+      animation: float 5s ease-in-out infinite;
+    }
+    .inactive-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #c4c4e0;
+      margin-bottom: 6px;
+    }
+    .inactive-sub {
+      font-size: 11px;
+      color: rgba(180,180,220,0.5);
+      line-height: 1.6;
+    }
   </style>
 </head>
 <body>
   <div class="header">
-    <span class="logo">LockIn</span>
+    <div class="logo-wrap">
+      <div class="logo-icon">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2"/>
+          <path d="M7 11V7a5 5 0 0110 0v4"/>
+        </svg>
+      </div>
+      <span class="logo">LockIn</span>
+    </div>
     <span class="status-dot" id="statusDot"></span>
   </div>
+
   <div id="content"></div>
   <script src="popup.js"></script>
 </body>
