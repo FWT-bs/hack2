@@ -1,31 +1,63 @@
-# LockIn — Demo
+# LockIn
 
-Front-end demo: **group chat** and **blocked-domain focus state** (warning banner + lock overlay). No database or auth.
+A real-time accountability platform that keeps you and your group on task — with a Chrome extension, live focus tracking, and a lock overlay that kicks in when you drift.
 
-## Run
+## Overview
+
+LockIn is built around one idea: accountability works better when it's social and real-time. Users join a shared room, set a focus state, and a Chrome extension monitors active tab domains to report whether they're actually on task. If someone drifts, a warning banner appears. If they stay off-task, a lock overlay triggers and prompts them to request a group accountability review.
+
+## Features
+
+- **Group chat** — Session-persistent messaging visible to all room members
+- **Live focus states** — On Task / Warning / Locked / Break, driven by Chrome extension activity
+- **Lock overlay** — Covers the screen and surfaces a "Request accountability review" dialog when triggered
+- **Chrome extension** — Monitors the active tab's domain and pushes real-time status updates to the room
+- **Supabase Realtime** — State synced live across all connected clients with no polling
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js (App Router), React, TypeScript |
+| Styling | Tailwind CSS |
+| Backend / DB | Supabase (PostgreSQL + Realtime) |
+| Browser Extension | Chrome Extension Manifest V3 |
+| Hosting | Vercel |
+
+## Getting Started
 
 ```bash
+git clone https://github.com/FWT-bs/hack2
+cd hack2
 npm install
+```
+
+Create a `.env.local` file at the project root:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+Run the development server:
+
+```bash
 npm run dev
 ```
 
-Open http://localhost:3000 → **Open demo room**.
+Open [http://localhost:3000](http://localhost:3000) to access a demo room.
 
-- **Chat:** Type and send; messages stay in memory (reset on refresh).
-- **Focus state:** Use the **Simulate** buttons (On task / Warning / Locked / Break) to see the warning banner and lock overlay.
-- **Lock overlay:** Click "Request accountability review" to open the break-request dialog (submit is demo-only).
+### Chrome Extension
 
-## Supabase / Auth
+1. Go to `chrome://extensions` and enable **Developer mode**
+2. Click **Load unpacked** and select the `extension/` folder
+3. The extension will begin monitoring active tab domains and reporting status to your room
 
-- **Disable email verification:** In [Supabase Dashboard](https://supabase.com/dashboard) → **Authentication** → **Providers** → **Email** → turn **off** “Confirm email”. Users can then sign in immediately after signup without clicking a confirmation link.
+## Database
 
-## Extension (optional)
-
-Load the `extension/` folder in Chrome (Developer mode → Load unpacked). It reports your current tab’s domain to `POST /api/activity` every 5s. The demo room page polls `GET /api/activity/state` and updates the focus badge (and lock overlay when domain is blocked).
-
-Allowed (on-task): e.g. docs.google.com, stackoverflow.com, localhost.  
-Blocked (locked): e.g. youtube.com, reddit.com, twitter.com.
+Schema is managed via Supabase migrations in `supabase/migrations/`. Apply them through the Supabase CLI or the dashboard SQL editor.
 
 ## License
 
 MIT
+
