@@ -7,6 +7,11 @@ export function useSessionTimer(startedAt: string, durationMinutes: number) {
   const [isExpired, setIsExpired] = useState(false)
 
   const calculate = useCallback(() => {
+    if (!durationMinutes || durationMinutes <= 0 || Number.isNaN(durationMinutes)) {
+      setRemainingSeconds(0)
+      setIsExpired(true)
+      return
+    }
     const start = new Date(startedAt).getTime()
     const end = start + durationMinutes * 60 * 1000
     const now = Date.now()

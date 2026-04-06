@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
 
 const SUGGESTED_TAGS = [
   "calculus",
@@ -31,17 +30,13 @@ export default function NewRoomPage() {
   function toggleTag(tag: string) {
     const value = tag.trim().toLowerCase()
     if (!value) return
-    setTags((prev) =>
-      prev.includes(value) ? prev.filter((t) => t !== value) : [...prev, value].slice(0, 8)
-    )
+    setTags((prev) => prev.includes(value) ? prev.filter((t) => t !== value) : [...prev, value].slice(0, 8))
   }
 
   function handleAddCustomTag() {
     const value = newTag.trim().toLowerCase().replace(/\s+/g, "-")
     if (!value) return
-    if (!tags.includes(value)) {
-      setTags((prev) => [...prev, value].slice(0, 8))
-    }
+    if (!tags.includes(value)) setTags((prev) => [...prev, value].slice(0, 8))
     setNewTag("")
   }
 
@@ -54,58 +49,40 @@ export default function NewRoomPage() {
     const topic = (formData.get("topic") as string)?.trim() || null
 
     const supabase = createClient()
-    const { data: roomId, error: rpcError } = await supabase.rpc("create_room", {
-      p_duration_minutes: duration,
-      p_name: name,
-      p_tags: tags,
-      p_topic: topic,
-    })
+    const { data: roomId, error: rpcError } = await supabase.rpc("create_room", { p_name: name, p_topic: topic })
 
-    if (rpcError) {
-      setError(rpcError.message)
-      setLoading(false)
-      return
-    }
-    if (!roomId) {
-      setError("Failed to create room")
-      setLoading(false)
-      return
-    }
+    if (rpcError) { setError(rpcError.message); setLoading(false); return }
+    if (!roomId) { setError("Failed to create room"); setLoading(false); return }
+
+    const endsAt = typeof duration === "number" && duration > 0 ? new Date(Date.now() + duration * 60_000).toISOString() : null
+    await supabase.from("rooms").update({ tags, planned_duration_minutes: duration, ends_at: endsAt }).eq("id", roomId)
+
     router.push(`/rooms/${roomId}`)
     router.refresh()
   }
 
   return (
     <div className="max-w-md mx-auto space-y-6">
-      <h1 className="text-xl font-semibold">Create a room</h1>
-      <form onSubmit={handleSubmit} className="rounded-xl border border-border bg-card p-6 space-y-5">
+      <div>
+        <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-muted-foreground mb-1">New session</p>
+        <h1 className="text-lg font-semibold tracking-tight">Configure your room</h1>
+      </div>
+
+      <form onSubmit={handleSubmit} className="border border-border rounded-sm p-5 space-y-5">
         <div className="space-y-2">
-          <Label htmlFor="name">Room name</Label>
-          <Input
-            id="name"
-            name="name"
-            placeholder="e.g. Algorithms study"
-            className="rounded-xl"
-            defaultValue=""
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="topic">Topic (optional)</Label>
-          <Input
-            id="topic"
-            name="topic"
-            placeholder="e.g. CS 101"
-            className="rounded-xl"
-            defaultValue=""
-          />
+          <Label htmlFor="name" className="text-xs">Room name</Label>
+          <Input id="name" name="name" placeholder="e.g. Algorithms study" className="rounded-sm" defaultValue="" />
         </div>
 
         <div className="space-y-2">
-          <Label>Tags</Label>
-          <p className="text-xs text-muted-foreground">
-            Add a few labels so other students can discover this room.
-          </p>
-          <div className="flex flex-wrap gap-2">
+          <Label htmlFor="topic" className="text-xs">Topic (optional)</Label>
+          <Input id="topic" name="topic" placeholder="e.g. CS 101" className="rounded-sm" defaultValue="" />
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-xs">Tags</Label>
+          <p className="text-[11px] text-muted-foreground">Add labels so others can discover this room.</p>
+          <div className="flex flex-wrap gap-1.5">
             {SUGGESTED_TAGS.map((tag) => {
               const active = tags.includes(tag)
               return (
@@ -113,10 +90,10 @@ export default function NewRoomPage() {
                   key={tag}
                   type="button"
                   onClick={() => toggleTag(tag)}
-                  className={`text-xs rounded-full border px-2 py-1 transition-all ${
+                  className={`text-[11px] rounded-sm border px-2 py-1 transition-colors duration-200 ${
                     active
-                      ? "border-primary/70 bg-primary/10 text-primary"
-                      : "border-border bg-muted/40 text-muted-foreground hover:border-primary/40 hover:bg-muted/70"
+                      ? "border-foreground/50 bg-foreground/10 text-foreground"
+                      : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
                   }`}
                 >
                   {tag}
@@ -124,52 +101,51 @@ export default function NewRoomPage() {
               )
             })}
           </div>
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex items-center gap-2">
             <Input
-              id="custom-tag"
               value={newTag}
               onChange={(e) => setNewTag(e.target.value)}
-              placeholder="Add custom tag (e.g. physics-lab)"
-              className="rounded-xl"
+              placeholder="Custom tag"
+              className="rounded-sm text-sm"
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddCustomTag() } }}
             />
-            <Button type="button" size="sm" className="rounded-xl" onClick={handleAddCustomTag}>
+            <Button type="button" size="sm" variant="outline" className="rounded-sm h-8 text-xs shrink-0" onClick={handleAddCustomTag}>
               Add
             </Button>
           </div>
           {tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 pt-1">
+            <div className="flex flex-wrap gap-1.5">
               {tags.map((tag) => (
-                <Badge
+                <button
                   key={tag}
-                  variant="secondary"
-                  className="rounded-full text-[11px] cursor-pointer"
+                  type="button"
                   onClick={() => toggleTag(tag)}
+                  className="text-[10px] rounded-sm border border-foreground/30 bg-foreground/5 text-foreground px-2 py-0.5 hover:bg-foreground/10 transition-colors duration-200"
                 >
-                  {tag}
-                </Badge>
+                  {tag} ×
+                </button>
               ))}
             </div>
           )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="duration">Planned duration (minutes)</Label>
+          <Label htmlFor="duration" className="text-xs">Duration (minutes)</Label>
           <Input
             id="duration"
             type="number"
             min={15}
             max={180}
-            className="rounded-xl w-24"
+            className="rounded-sm w-24"
             value={duration}
             onChange={(e) => setDuration(Number(e.target.value || 50))}
           />
-          <p className="text-xs text-muted-foreground">
-            Used to show &quot;time left&quot; in discovery and in the room header.
-          </p>
+          <p className="text-[11px] text-muted-foreground">Shows &quot;time left&quot; in discovery and room header.</p>
         </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button type="submit" className="w-full rounded-xl" disabled={loading}>
+
+        <Button type="submit" className="w-full rounded-sm" disabled={loading}>
           {loading ? "Creating…" : "Create room"}
         </Button>
       </form>

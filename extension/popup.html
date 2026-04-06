@@ -3,61 +3,55 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LockIn</title>
+  <title>grouplock</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    @keyframes bg-flow {
-      0%   { background-position: 0%   50%; }
-      50%  { background-position: 100% 50%; }
-      100% { background-position: 0%   50%; }
-    }
-
     @keyframes fade-up {
-      from { opacity: 0; transform: translateY(10px); }
-      to   { opacity: 1; transform: translateY(0);    }
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
-
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 0.6; transform: scale(1);   }
-      50%       { opacity: 1;   transform: scale(1.25); }
-    }
-
     @keyframes float {
-      0%, 100% { transform: translateY(0);   }
-      50%       { transform: translateY(-3px); }
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-4px); }
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 0.55; transform: scale(1); }
+      50%       { opacity: 1;    transform: scale(1.3); }
+    }
+    @keyframes blink-eyes {
+      0%, 92%, 100% { transform: scaleY(1); }
+      96%            { transform: scaleY(0.08); }
+    }
+
+    :root {
+      --bg:      #0a0a0a;
+      --card:    #111111;
+      --border:  #262626;
+      --fg:      #fafafa;
+      --muted:   #737373;
+      --muted2:  #404040;
     }
 
     body {
-      width: 320px;
-      min-height: 210px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #06060f, #0d0d22, #060c18, #0a0616);
-      background-size: 300% 300%;
-      animation: bg-flow 12s ease infinite;
-      color: #e2e2f0;
-      padding: 18px 20px 20px;
+      width: 300px;
+      min-height: 200px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      padding: 16px 18px 18px;
       overflow: hidden;
     }
 
-    /* Decorative background orbs */
+    /* Subtle grid texture */
     body::before {
       content: '';
-      position: absolute;
-      top: -40px; right: -40px;
-      width: 160px; height: 160px;
-      background: radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%);
-      border-radius: 50%;
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(250,250,250,0.035) 1px, transparent 1px);
+      background-size: 20px 20px;
       pointer-events: none;
-    }
-    body::after {
-      content: '';
-      position: absolute;
-      bottom: -30px; left: -30px;
-      width: 120px; height: 120px;
-      background: radial-gradient(circle, rgba(139,92,246,0.14) 0%, transparent 70%);
-      border-radius: 50%;
-      pointer-events: none;
+      z-index: 0;
     }
 
     /* ── Header ── */
@@ -65,8 +59,10 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 18px;
-      animation: fade-up 0.5s ease both;
+      margin-bottom: 16px;
+      animation: fade-up 0.45s cubic-bezier(0.22,1,0.36,1) both;
+      position: relative;
+      z-index: 1;
     }
 
     .logo-wrap {
@@ -75,50 +71,60 @@
       gap: 7px;
     }
 
-    .logo-icon {
-      width: 24px; height: 24px;
-      background: rgba(99,102,241,0.9);
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    /* Glyph mascot SVG — inline, animated */
+    .glyph {
       animation: float 6s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+    .glyph-eyes {
+      animation: blink-eyes 5s 2s ease-in-out infinite;
+      transform-origin: center;
     }
 
-    .logo {
-      font-size: 16px;
+    .logo-text {
+      font-size: 13px;
       font-weight: 700;
-      letter-spacing: -0.4px;
-      color: #f0f0fa;
+      letter-spacing: -0.3px;
+      color: var(--fg);
     }
 
     .status-dot {
-      width: 8px; height: 8px;
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
+      flex-shrink: 0;
     }
-    .status-dot.active {
-      background: #22c55e;
-      animation: pulse-dot 2s ease-in-out infinite;
-      box-shadow: 0 0 8px rgba(34,197,94,0.5);
-    }
-    .status-dot.inactive { background: #3f3f5a; }
+    .status-dot.active   { background: var(--fg); animation: pulse-dot 2.5s ease-in-out infinite; }
+    .status-dot.inactive { background: var(--muted2); }
 
-    /* ── Content sections float directly on bg — no card boxes ── */
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 12px 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Sections ── */
     .section {
-      margin-bottom: 14px;
-      animation: fade-up 0.55s ease both;
+      margin-bottom: 12px;
+      animation: fade-up 0.5s cubic-bezier(0.22,1,0.36,1) both;
+      position: relative;
+      z-index: 1;
     }
-    .section:nth-child(2) { animation-delay: 60ms;  }
-    .section:nth-child(3) { animation-delay: 120ms; }
-    .section:nth-child(4) { animation-delay: 180ms; }
+    .section:nth-child(2) { animation-delay: 50ms;  }
+    .section:nth-child(3) { animation-delay: 100ms; }
+    .section:nth-child(4) { animation-delay: 150ms; }
 
-    .section-label {
+    .label {
       font-size: 9px;
       text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: rgba(180,180,220,0.5);
+      letter-spacing: 0.14em;
+      color: var(--muted);
       font-weight: 600;
       margin-bottom: 5px;
+      font-family: 'SF Mono', 'Fira Code', 'Menlo', monospace;
     }
 
     /* Focus state pill */
@@ -126,109 +132,106 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 4px 12px 4px 8px;
-      border-radius: 20px;
-      font-size: 13px;
+      padding: 4px 10px 4px 7px;
+      border-radius: 3px;
+      font-size: 12px;
       font-weight: 600;
-      border: 1px solid transparent;
+      border: 1px solid var(--border);
+      background: var(--card);
     }
     .focus-pill .pill-dot {
-      width: 6px; height: 6px;
+      width: 5px; height: 5px;
       border-radius: 50%;
     }
-    .focus-pill.on-task        { background: rgba(34,197,94,0.12);  color: #4ade80; border-color: rgba(34,197,94,0.25);  }
-    .focus-pill.on-task .pill-dot  { background: #22c55e; animation: pulse-dot 2s ease-in-out infinite; }
-    .focus-pill.warning        { background: rgba(234,179,8,0.12);  color: #fbbf24; border-color: rgba(234,179,8,0.25);  }
-    .focus-pill.warning .pill-dot  { background: #eab308; animation: pulse-dot 2s ease-in-out infinite; }
-    .focus-pill.locked         { background: rgba(239,68,68,0.12);  color: #f87171; border-color: rgba(239,68,68,0.25);  }
-    .focus-pill.locked .pill-dot   { background: #ef4444; animation: pulse-dot 2s ease-in-out infinite; }
-    .focus-pill.approved-break { background: rgba(99,102,241,0.12); color: #818cf8; border-color: rgba(99,102,241,0.25); }
-    .focus-pill.approved-break .pill-dot { background: #6366f1; animation: pulse-dot 2s ease-in-out infinite; }
+    /* States use grayscale tints aligned with monochrome scheme */
+    .focus-pill.on-task        { border-color: rgba(250,250,250,0.25); }
+    .focus-pill.on-task .pill-dot  { background: var(--fg); animation: pulse-dot 2.5s ease-in-out infinite; }
+    .focus-pill.warning        { border-color: rgba(250,250,250,0.15); color: #a3a3a3; }
+    .focus-pill.warning .pill-dot  { background: #737373; animation: pulse-dot 2s ease-in-out infinite; }
+    .focus-pill.locked         { border-color: rgba(250,250,250,0.1); color: #737373; }
+    .focus-pill.locked .pill-dot   { background: #525252; }
+    .focus-pill.approved-break { border-color: rgba(250,250,250,0.1); color: #a3a3a3; }
+    .focus-pill.approved-break .pill-dot { background: #737373; animation: pulse-dot 3s ease-in-out infinite; }
 
-    /* Domain — floats as text */
+    /* Domain row */
     .domain-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
     }
-
     .domain-name {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 500;
-      color: #c4c4e0;
-      font-family: 'SF Mono', 'Fira Code', monospace;
+      color: var(--fg);
+      font-family: 'SF Mono', 'Fira Code', 'Menlo', monospace;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 200px;
+      max-width: 190px;
     }
-
     .domain-badge {
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 10px;
+      padding: 2px 7px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      font-family: 'SF Mono', 'Fira Code', 'Menlo', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
       flex-shrink: 0;
     }
-    .domain-badge.allowed  { background: rgba(34,197,94,0.15);  color: #4ade80; }
-    .domain-badge.blocked  { background: rgba(239,68,68,0.15);  color: #f87171; }
-    .domain-badge.unlisted { background: rgba(234,179,8,0.12);  color: #fbbf24; }
+    .domain-badge.allowed  { color: var(--fg);   border-color: rgba(250,250,250,0.3); }
+    .domain-badge.blocked  { color: var(--muted); border-color: var(--border); }
+    .domain-badge.unlisted { color: var(--muted); border-color: var(--border); }
 
-    /* Divider */
-    .divider {
-      height: 1px;
-      background: rgba(255,255,255,0.06);
-      margin: 10px 0;
-    }
-
-    /* CTA button — floating */
+    /* CTA */
     .cta {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
       width: 100%;
-      padding: 9px 16px;
-      background: rgba(99,102,241,0.85);
-      color: #fff;
+      padding: 8px 14px;
+      background: var(--fg);
+      color: var(--bg);
       border: none;
-      border-radius: 10px;
-      font-size: 13px;
+      border-radius: 3px;
+      font-size: 12px;
       font-weight: 600;
       cursor: pointer;
       text-decoration: none;
-      transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
-      animation: fade-up 0.6s 200ms ease both;
+      transition: opacity 0.2s, transform 0.2s;
+      animation: fade-up 0.55s 180ms cubic-bezier(0.22,1,0.36,1) both;
       margin-top: 4px;
+      position: relative;
+      z-index: 1;
     }
-    .cta:hover {
-      background: rgba(99,102,241,1);
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(99,102,241,0.35);
-    }
+    .cta:hover { opacity: 0.88; transform: translateY(-1px); }
 
     /* Inactive state */
     .inactive-msg {
       text-align: center;
-      padding: 28px 0 16px;
+      padding: 24px 0 16px;
       animation: fade-up 0.5s ease both;
+      position: relative;
+      z-index: 1;
     }
-    .inactive-emoji {
-      font-size: 28px;
-      margin-bottom: 10px;
-      display: block;
-      animation: float 5s ease-in-out infinite;
+    .inactive-glyph {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 14px;
+      opacity: 0.4;
     }
     .inactive-title {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
-      color: #c4c4e0;
-      margin-bottom: 6px;
+      color: var(--fg);
+      margin-bottom: 5px;
     }
     .inactive-sub {
       font-size: 11px;
-      color: rgba(180,180,220,0.5);
+      color: var(--muted);
       line-height: 1.6;
     }
   </style>
@@ -236,13 +239,22 @@
 <body>
   <div class="header">
     <div class="logo-wrap">
-      <div class="logo-icon">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2"/>
-          <path d="M7 11V7a5 5 0 0110 0v4"/>
-        </svg>
-      </div>
-      <span class="logo">LockIn</span>
+      <!-- Glyph mascot SVG (inline) -->
+      <svg class="glyph" width="20" height="24" viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="grouplock">
+        <!-- Shackle -->
+        <path d="M11.5 19V13.5a6.5 6.5 0 0113 0V19" stroke="#fafafa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Lock body -->
+        <rect x="4" y="19" width="28" height="21" rx="3" fill="#fafafa"/>
+        <!-- Eyes (cutout) -->
+        <g class="glyph-eyes">
+          <rect x="8.5" y="24.5" width="5.5" height="3.8" rx="0.8" fill="#0a0a0a"/>
+          <rect x="22" y="24.5" width="5.5" height="3.8" rx="0.8" fill="#0a0a0a"/>
+        </g>
+        <!-- Keyhole -->
+        <circle cx="18" cy="34.5" r="2.4" fill="#0a0a0a"/>
+        <rect x="16.7" y="33" width="2.6" height="4" rx="0" fill="#0a0a0a"/>
+      </svg>
+      <span class="logo-text">grouplock</span>
     </div>
     <span class="status-dot" id="statusDot"></span>
   </div>

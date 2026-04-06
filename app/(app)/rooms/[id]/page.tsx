@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { DemoRoom } from "@/components/room/demo-room"
+import { StudyRoom } from "@/components/room/study-room"
 import { useRoom } from "@/hooks/use-room"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
@@ -11,7 +11,7 @@ export default function RoomPage() {
   const params = useParams()
   const router = useRouter()
   const roomId = params.id as string
-  const { room, messages, sendMessage, loading, userId } = useRoom(roomId)
+  const { room, messages, members, sendMessage, loading, userId } = useRoom(roomId)
 
   async function handleLeaveRoom() {
     const supabase = createClient()
@@ -45,12 +45,15 @@ export default function RoomPage() {
   }
 
   return (
-    <DemoRoom
+    <StudyRoom
       roomId={roomId}
       roomName={room.name}
       roomTopic={room.topic ?? undefined}
       messages={messages}
+      members={members}
       currentUserId={userId ?? undefined}
+      startedAt={room.created_at}
+      durationMinutes={room.planned_duration_minutes ?? 60}
       onSendMessage={sendMessage}
       onLeaveRoom={handleLeaveRoom}
     />

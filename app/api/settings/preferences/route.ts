@@ -54,7 +54,7 @@ export async function PATCH(request: NextRequest) {
     focus?: Record<string, unknown>
   }
 
-  const tasks: Promise<unknown>[] = []
+  const tasks: PromiseLike<unknown>[] = []
 
   if (settings && typeof settings === "object") {
     const s: Record<string, unknown> = {}

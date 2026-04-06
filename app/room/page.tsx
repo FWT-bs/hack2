@@ -1,7 +1,7 @@
 "use client"
 
-import { DemoRoom } from "@/components/room/demo-room"
+import { StudyRoom } from "@/components/room/study-room"
 
 export default function RoomPage() {
-  return <DemoRoom />
+  return <StudyRoom />
 }

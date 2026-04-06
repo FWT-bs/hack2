@@ -5,10 +5,10 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import type { User } from "@supabase/supabase-js"
-import { Lock, Home, MessageSquare, Users, History, Settings, LogOut } from "lucide-react"
+import { Home, MessageSquare, Users, History, Settings, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { BrandIcon } from "@/components/brand-mark"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,9 +32,7 @@ export function AppNav() {
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user: u } }) => setUser(u))
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => setUser(session?.user ?? null))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setUser(s?.user ?? null))
     return () => subscription.unsubscribe()
   }, [])
 
@@ -45,100 +43,77 @@ export function AppNav() {
     router.refresh()
   }
 
-  const initials = user?.email
-    ? user.email.slice(0, 2).toUpperCase()
-    : "?"
+  const initials = user?.email ? user.email.slice(0, 2).toUpperCase() : "?"
+  const firstName = (user?.user_metadata?.full_name as string | undefined)?.split(" ")[0] || (user?.email ? user.email.split("@")[0] : null)
 
   return (
     <>
-      <header className="sticky top-0 z-20 border-b border-border/60 bg-background/80 backdrop-blur-md">
-        <div className="container max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
-          <Link href="/home" className="flex items-center gap-2 shrink-0 hover:opacity-80">
-            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-              <Lock className="h-3.5 w-3.5 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-base tracking-tight hidden sm:inline">LockIn</span>
+      {/* Desktop */}
+      <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-xl">
+        <div className="max-w-6xl mx-auto px-6 h-12 flex items-center justify-between gap-4">
+          <Link href="/home" className="flex items-center gap-1.5 hover:opacity-70 transition-opacity duration-200 group">
+            <BrandIcon size={14} className="text-foreground" />
+            <span className="font-semibold text-sm tracking-tight">grouplock</span>
           </Link>
 
-          <nav className="flex items-center gap-1 flex-1 justify-center">
-            {navLinks.map(({ href, label, icon: Icon }) => (
-              <Link key={href} href={href}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "gap-1.5 rounded-xl",
-                    pathname === href || pathname.startsWith(href + "/")
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="hidden md:inline">{label}</span>
-                </Button>
-              </Link>
-            ))}
+          <nav className="hidden md:flex items-center gap-0.5">
+            {navLinks.map(({ href, label, icon: Icon }) => {
+              const active = pathname === href || pathname.startsWith(href + "/")
+              return (
+                <Link key={href} href={href}>
+                  <button className={cn(
+                    "flex items-center gap-1.5 px-3 h-8 rounded-sm text-xs font-medium transition-colors duration-200",
+                    active ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+                  )}>
+                    <Icon className="h-3.5 w-3.5" />
+                    {label}
+                  </button>
+                </Link>
+              )
+            })}
           </nav>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <Link href="/settings">
-              <Button variant="ghost" size="icon" className="rounded-full md:hidden">
-                <Settings className="h-4 w-4" />
-              </Button>
-            </Link>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                className="rounded-full h-8 w-8 border-0 bg-transparent p-0 hover:bg-accent"
-                aria-label="Account menu"
-              >
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={user?.user_metadata?.avatar_url} alt={user?.email} />
-                  <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-                </Avatar>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <div className="px-2 py-1.5 text-sm text-muted-foreground truncate">
-                  {user?.email}
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <Link href="/settings">Settings</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem variant="destructive" onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger className="rounded-sm h-7 w-7 bg-muted hover:bg-accent transition-colors duration-200" aria-label="Account">
+              <Avatar className="h-7 w-7 rounded-sm">
+                <AvatarImage src={user?.user_metadata?.avatar_url} />
+                <AvatarFallback className="text-[10px] font-medium rounded-sm">{initials}</AvatarFallback>
+              </Avatar>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 rounded-sm">
+              <div className="px-3 py-2">
+                <p className="font-medium text-sm truncate">{firstName || "Account"}</p>
+                {user?.email && <p className="text-xs text-muted-foreground truncate">{user.email}</p>}
+              </div>
+              <DropdownMenuSeparator />
+              <Link href="/settings">
+                <DropdownMenuItem><Settings className="mr-2 h-3.5 w-3.5" />Settings</DropdownMenuItem>
+              </Link>
+              <DropdownMenuItem variant="destructive" onClick={handleSignOut}>
+                <LogOut className="mr-2 h-3.5 w-3.5" />Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
       {/* Mobile bottom tabs */}
-      <nav className="fixed bottom-0 left-0 right-0 z-20 md:hidden border-t border-border bg-background/95 backdrop-blur-md safe-area-pb">
-        <div className="flex items-center justify-around h-14">
-          <Link href="/home">
-            <Button variant="ghost" size="sm" className={cn("rounded-xl", pathname === "/home" && "bg-primary/10 text-primary")}>
-              <Home className="h-5 w-5" />
-            </Button>
-          </Link>
-          <Link href="/rooms">
-            <Button variant="ghost" size="sm" className={cn("rounded-xl", pathname.startsWith("/rooms") && "bg-primary/10 text-primary")}>
-              <MessageSquare className="h-5 w-5" />
-            </Button>
-          </Link>
-          <Link href="/friends">
-            <Button variant="ghost" size="sm" className={cn("rounded-xl", pathname.startsWith("/friends") && "bg-primary/10 text-primary")}>
-              <Users className="h-5 w-5" />
-            </Button>
-          </Link>
-          <Link href="/settings">
-            <Button variant="ghost" size="sm" className={cn("rounded-xl", pathname.startsWith("/settings") && "bg-primary/10 text-primary")}>
-              <Avatar className="h-6 w-6">
-                <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-              </Avatar>
-            </Button>
-          </Link>
+      <nav className="fixed bottom-0 left-0 right-0 z-20 md:hidden border-t border-border bg-background/90 backdrop-blur-xl">
+        <div className="flex items-center justify-around h-12">
+          {navLinks.map(({ href, label, icon: Icon }) => {
+            const active = pathname === href || pathname.startsWith(href + "/")
+            return (
+              <Link key={href} href={href} className="flex-1">
+                <button className={cn(
+                  "flex flex-col items-center gap-0.5 w-full py-1 transition-colors duration-200",
+                  active ? "text-foreground" : "text-muted-foreground"
+                )}>
+                  <Icon className="h-4 w-4" />
+                  <span className="text-[9px] font-medium">{label}</span>
+                </button>
+              </Link>
+            )
+          })}
         </div>
       </nav>
     </>

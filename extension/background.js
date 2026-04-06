@@ -39,6 +39,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     const response = await fetch(`${API_BASE}/api/activity`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify(body),
     });
 
@@ -122,6 +123,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         const response = await fetch(`${API_BASE}/api/activity`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify(body),
         });
         if (!response.ok) return { focusState: "on-task", status: "unlisted" };
@@ -138,7 +140,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         const { room_id } = await getStoredContext();
         let url = `${API_BASE}/api/activity/domains`;
         if (room_id) url += `?room_id=${encodeURIComponent(room_id)}`;
-        const response = await fetch(url);
+        const response = await fetch(url, { credentials: "include" });
         if (!response.ok) return { allowed: [], blocked: [] };
         return await response.json();
       } catch (e) {
@@ -154,6 +156,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         await fetch(`${API_BASE}/api/focus-events`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
             event_type: payload.event_type,
             domain: payload.domain,

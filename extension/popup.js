@@ -17,9 +17,18 @@ async function render() {
     dot.className = "status-dot inactive";
     content.innerHTML = `
       <div class="inactive-msg">
-        <span class="inactive-emoji">📚</span>
+        <div class="inactive-glyph">
+          <svg width="36" height="44" viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="animation: float 7s ease-in-out infinite;">
+            <path d="M11.5 19V13.5a6.5 6.5 0 0113 0V19" stroke="#fafafa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="4" y="19" width="28" height="21" rx="3" fill="#fafafa"/>
+            <rect x="8.5" y="24.5" width="5.5" height="0.8" rx="0.8" fill="#0a0a0a"/>
+            <rect x="22" y="24.5" width="5.5" height="0.8" rx="0.8" fill="#0a0a0a"/>
+            <circle cx="18" cy="34.5" r="2.4" fill="#0a0a0a"/>
+            <rect x="16.7" y="33" width="2.6" height="4" rx="0" fill="#0a0a0a"/>
+          </svg>
+        </div>
         <p class="inactive-title">No active session</p>
-        <p class="inactive-sub">Start a session on the LockIn web app<br>to begin monitoring your focus.</p>
+        <p class="inactive-sub">Join a focus room on grouplock<br>to start monitoring your focus.</p>
       </div>
     `;
     return;

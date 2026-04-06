@@ -1,17 +1,25 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import type { RealtimeChannel } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/client"
 import type { Room } from "@/lib/room"
-import type { DemoMessage } from "@/components/room/demo-room"
+import type { RoomMessage } from "@/components/room/study-room"
 import { messageToDisplayName, type MessageRow } from "@/lib/room"
+
+export type RoomMember = {
+  id: string
+  name: string
+  focusState: "on-task" | "warning" | "locked" | "approved-break"
+}
 
 export function useRoom(roomId: string | null) {
   const [room, setRoom] = useState<Room | null>(null)
-  const [messages, setMessages] = useState<DemoMessage[]>([])
+  const [messages, setMessages] = useState<RoomMessage[]>([])
+  const [members, setMembers] = useState<RoomMember[]>([])
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
+  const userIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!roomId) {
@@ -23,7 +31,9 @@ export function useRoom(roomId: string | null) {
 
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
-      setUserId(user?.id ?? null)
+      const uid = user?.id ?? null
+      setUserId(uid)
+      userIdRef.current = uid
 
       const { data: roomData, error: roomErr } = await supabase
         .from("rooms")
@@ -37,11 +47,19 @@ export function useRoom(roomId: string | null) {
       }
       setRoom(roomData as Room)
 
-      const { data: messagesData } = await supabase
-        .from("messages")
-        .select("*, profiles(full_name, username)")
-        .eq("room_id", roomId)
-        .order("created_at", { ascending: true })
+      const [{ data: messagesData }, { data: memberRows }] = await Promise.all([
+        supabase
+          .from("messages")
+          .select("*, profiles(full_name, username)")
+          .eq("room_id", roomId)
+          .order("created_at", { ascending: true }),
+        supabase
+          .from("room_members")
+          .select("user_id, role, profiles(full_name, username)")
+          .eq("room_id", roomId)
+          .is("left_at", null),
+      ])
+
       const list = (messagesData ?? []).map((row: MessageRow) => ({
         id: row.id,
         user_id: row.user_id,
@@ -52,24 +70,43 @@ export function useRoom(roomId: string | null) {
       }))
       setMessages(list)
 
+      const memberList: RoomMember[] = (memberRows ?? []).map((m) => {
+        const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
+        const name =
+          profile?.full_name?.trim() ||
+          profile?.username?.trim() ||
+          (m.user_id === uid ? "You" : "Member")
+        return { id: m.user_id as string, name, focusState: "on-task" as const }
+      })
+      setMembers(memberList)
+
       channel = supabase
         .channel(`room:${roomId}:messages`)
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "messages", filter: `room_id=eq.${roomId}` },
           (payload) => {
-            const newRow = payload.new as { id: string; user_id: string; content: string; type: string; created_at: string }
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: newRow.id,
-                user_id: newRow.user_id,
-                content: newRow.content,
-                type: newRow.type as "message" | "system",
-                created_at: newRow.created_at,
-                displayName: newRow.user_id === userId ? "You" : "Someone",
-              },
-            ])
+            const newRow = payload.new as {
+              id: string
+              user_id: string
+              content: string
+              type: string
+              created_at: string
+            }
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === newRow.id)) return prev
+              return [
+                ...prev,
+                {
+                  id: newRow.id,
+                  user_id: newRow.user_id,
+                  content: newRow.content,
+                  type: newRow.type as "message" | "system",
+                  created_at: newRow.created_at,
+                  displayName: newRow.user_id === userIdRef.current ? "You" : "Someone",
+                },
+              ]
+            })
           }
         )
         .subscribe()
@@ -80,6 +117,7 @@ export function useRoom(roomId: string | null) {
     return () => {
       if (channel) supabase.removeChannel(channel)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId])
 
   const sendMessage = useCallback(
@@ -110,5 +148,5 @@ export function useRoom(roomId: string | null) {
     [roomId, userId]
   )
 
-  return { room, messages, sendMessage, loading, userId }
+  return { room, messages, members, sendMessage, loading, userId }
 }

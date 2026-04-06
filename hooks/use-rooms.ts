@@ -34,7 +34,9 @@ export function useRooms() {
             .select("room_id, left_at, role")
             .eq("user_id", user.id)
         : { data: [] as { room_id: string; left_at: string | null; role: string }[] },
-      supabase.from("room_members").select("room_id"),
+      user
+        ? supabase.from("room_members").select("room_id").is("left_at", null)
+        : { data: [] as { room_id: string }[] },
     ])
 
     const roomList = (roomsRes.data ?? []) as RoomWithMembership[]
@@ -70,7 +72,14 @@ export function useRooms() {
   }, [])
 
   useEffect(() => {
-    refresh()
+    void refresh()
+
+    // Keep rooms, member counts, and time-left reasonably fresh.
+    const interval = setInterval(() => {
+      void refresh()
+    }, 30_000)
+
+    return () => clearInterval(interval)
   }, [refresh])
 
   return { rooms, myRoomIds, loading, userId, refresh }

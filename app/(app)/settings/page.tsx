@@ -9,5 +9,5 @@ export default async function SettingsPage() {
   } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
-  return <SettingsShell email={user.email} />
+  return <SettingsShell email={user.email ?? null} />
 }

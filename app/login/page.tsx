@@ -7,7 +7,8 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Lock, Chrome } from "lucide-react"
+import { Chrome } from "lucide-react"
+import { BrandMark } from "@/components/brand-mark"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -54,10 +55,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
       <div className="w-full max-w-sm space-y-8">
         <Link href="/" className="flex items-center justify-center gap-2 text-foreground hover:opacity-80">
-          <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center">
-            <Lock className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <span className="font-bold text-lg">LockIn</span>
+          <BrandMark size={28} blink className="text-foreground" />
+          <span className="font-bold text-lg tracking-tight">grouplock</span>
         </Link>
         <div className="rounded-2xl border border-border bg-card p-6 shadow-lg">
           <h1 className="text-xl font-semibold text-center mb-6">Sign in</h1>
