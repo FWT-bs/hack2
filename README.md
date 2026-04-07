@@ -4,6 +4,10 @@
 
 Built with Next.js 16 (App Router), React 19, Supabase (Auth + Postgres + Realtime), and Tailwind CSS.
 
+## Overview
+
+LockIn is built around one idea: accountability works better when it's social and real-time. Users join a shared room, set a focus state, and the Chrome extension monitors active tab domains so the room can tell whether people are on task. If someone drifts, a warning appears; if they stay off-task, a lock overlay can prompt a group accountability review.
+
 ## Features
 
 - **Real-time study rooms** — Create or join rooms with live chat powered by Supabase Realtime. Set session goals, durations, and topic tags so others can find your room.
@@ -25,6 +29,7 @@ Built with Next.js 16 (App Router), React 19, Supabase (Auth + Postgres + Realti
 | Auth & Database | [Supabase](https://supabase.com/) (PostgreSQL, Auth, Realtime, RLS) |
 | Forms | [React Hook Form](https://react-hook-form.com/) + [Zod](https://zod.dev/) validation |
 | Extension | Chrome Manifest V3 (background service worker + content scripts) |
+| Hosting | [Vercel](https://vercel.com/) |
 
 ## Getting Started
 
@@ -41,14 +46,14 @@ cd hack2
 npm install
 ```
 
-Create a `.env.local` file:
+Create a `.env.local` file at the project root:
 
-```
+```env
 NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-Run the Supabase migrations in `supabase/migrations/` against your project, then start the dev server:
+Run the Supabase migrations in `supabase/migrations/` against your project (via the [Supabase CLI](https://supabase.com/docs/guides/cli) or the dashboard SQL editor), then start the dev server:
 
 ```bash
 npm run dev
