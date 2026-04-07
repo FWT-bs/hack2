@@ -13,6 +13,11 @@ export type RoomMember = {
   focusState: "on-task" | "warning" | "locked" | "approved-break"
 }
 
+function normalizeFocusState(raw: string | null | undefined): RoomMember["focusState"] {
+  if (raw === "warning" || raw === "locked" || raw === "approved-break") return raw
+  return "on-task"
+}
+
 export function useRoom(roomId: string | null) {
   const [room, setRoom] = useState<Room | null>(null)
   const [messages, setMessages] = useState<RoomMessage[]>([])
@@ -28,10 +33,83 @@ export function useRoom(roomId: string | null) {
     }
     const supabase = createClient()
     let channel: RealtimeChannel | null = null
+    let cancelled = false
+
+    async function fetchMembers(uid: string | null) {
+      const [{ data: memberRows }, focusRes] = await Promise.all([
+        supabase
+          .from("room_members")
+          .select("user_id, role, profiles(full_name, username)")
+          .eq("room_id", roomId)
+          .is("left_at", null),
+        supabase.from("room_member_focus").select("user_id, focus_state").eq("room_id", roomId),
+      ])
+
+      const focusMap = new Map<string, string>()
+      if (!focusRes.error && focusRes.data) {
+        for (const row of focusRes.data) {
+          focusMap.set(row.user_id as string, row.focus_state as string)
+        }
+      }
+
+      const list: RoomMember[] = (memberRows ?? []).map((m) => {
+        const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
+        const name =
+          profile?.full_name?.trim() ||
+          profile?.username?.trim() ||
+          (m.user_id === uid ? "You" : "Member")
+        const fid = m.user_id as string
+        return {
+          id: fid,
+          name,
+          focusState: normalizeFocusState(focusMap.get(fid)),
+        }
+      })
+      if (!cancelled) setMembers(list)
+    }
+
+    async function onMessageInserted(payload: {
+      new: Record<string, unknown>
+    }) {
+      const newRow = payload.new as {
+        id: string
+        user_id: string
+        content: string
+        type: string
+        created_at: string
+      }
+      let displayName = "Someone"
+      if (newRow.user_id === userIdRef.current) {
+        displayName = "You"
+      } else {
+        const { data: p } = await supabase
+          .from("profiles")
+          .select("full_name, username")
+          .eq("id", newRow.user_id)
+          .maybeSingle()
+        displayName =
+          p?.full_name?.trim() || p?.username?.trim() || "Someone"
+      }
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === newRow.id)) return prev
+        return [
+          ...prev,
+          {
+            id: newRow.id,
+            user_id: newRow.user_id,
+            content: newRow.content,
+            type: newRow.type as "message" | "system",
+            created_at: newRow.created_at,
+            displayName,
+          },
+        ]
+      })
+    }
 
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       const uid = user?.id ?? null
+      if (cancelled) return
       setUserId(uid)
       userIdRef.current = uid
 
@@ -41,24 +119,21 @@ export function useRoom(roomId: string | null) {
         .eq("id", roomId)
         .single()
       if (roomErr || !roomData) {
-        setRoom(null)
-        setLoading(false)
+        if (!cancelled) {
+          setRoom(null)
+          setLoading(false)
+        }
         return
       }
-      setRoom(roomData as Room)
+      if (!cancelled) setRoom(roomData as Room)
 
-      const [{ data: messagesData }, { data: memberRows }] = await Promise.all([
-        supabase
-          .from("messages")
-          .select("*, profiles(full_name, username)")
-          .eq("room_id", roomId)
-          .order("created_at", { ascending: true }),
-        supabase
-          .from("room_members")
-          .select("user_id, role, profiles(full_name, username)")
-          .eq("room_id", roomId)
-          .is("left_at", null),
-      ])
+      const { data: messagesData } = await supabase
+        .from("messages")
+        .select("*, profiles(full_name, username)")
+        .eq("room_id", roomId)
+        .order("created_at", { ascending: true })
+
+      if (cancelled) return
 
       const list = (messagesData ?? []).map((row: MessageRow) => ({
         id: row.id,
@@ -70,51 +145,64 @@ export function useRoom(roomId: string | null) {
       }))
       setMessages(list)
 
-      const memberList: RoomMember[] = (memberRows ?? []).map((m) => {
-        const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
-        const name =
-          profile?.full_name?.trim() ||
-          profile?.username?.trim() ||
-          (m.user_id === uid ? "You" : "Member")
-        return { id: m.user_id as string, name, focusState: "on-task" as const }
-      })
-      setMembers(memberList)
+      await fetchMembers(uid)
 
       channel = supabase
-        .channel(`room:${roomId}:messages`)
+        .channel(`room:${roomId}:live`)
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "messages", filter: `room_id=eq.${roomId}` },
           (payload) => {
-            const newRow = payload.new as {
-              id: string
-              user_id: string
-              content: string
-              type: string
-              created_at: string
-            }
-            setMessages((prev) => {
-              if (prev.some((m) => m.id === newRow.id)) return prev
-              return [
-                ...prev,
-                {
-                  id: newRow.id,
-                  user_id: newRow.user_id,
-                  content: newRow.content,
-                  type: newRow.type as "message" | "system",
-                  created_at: newRow.created_at,
-                  displayName: newRow.user_id === userIdRef.current ? "You" : "Someone",
-                },
-              ]
+            void onMessageInserted(payload)
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "room_members", filter: `room_id=eq.${roomId}` },
+          () => {
+            void fetchMembers(userIdRef.current)
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "room_members", filter: `room_id=eq.${roomId}` },
+          () => {
+            void fetchMembers(userIdRef.current)
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "rooms", filter: `id=eq.${roomId}` },
+          (payload) => {
+            setRoom((prev) => {
+              if (!prev) return prev
+              return { ...prev, ...(payload.new as Partial<Room>) }
             })
           }
         )
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "room_member_focus", filter: `room_id=eq.${roomId}` },
+          () => {
+            void fetchMembers(userIdRef.current)
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "room_member_focus", filter: `room_id=eq.${roomId}` },
+          () => {
+            void fetchMembers(userIdRef.current)
+          }
+        )
         .subscribe()
-      setLoading(false)
+
+      if (!cancelled) setLoading(false)
     }
 
-    load()
+    void load()
+
     return () => {
+      cancelled = true
       if (channel) supabase.removeChannel(channel)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

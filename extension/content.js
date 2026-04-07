@@ -42,3 +42,18 @@ function handleMessage(event) {
 }
 
 window.addEventListener("message", handleMessage);
+
+function reportAppOrigin() {
+  if (!runtime) return;
+  try {
+    const origin = window.location.origin;
+    if (origin && (origin.startsWith("http://") || origin.startsWith("https://"))) {
+      runtime.sendMessage({ type: "SET_APP_ORIGIN", origin }, function () {});
+    }
+  } catch (_) {}
+}
+
+reportAppOrigin();
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") reportAppOrigin();
+});

@@ -53,6 +53,15 @@ NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
+Optional (recommended on Vercel): set **`NEXT_PUBLIC_APP_URL`** to your canonical site URL (e.g. `https://your-project.vercel.app`) for consistent client-side links. Add the same URL under **Supabase → Authentication → URL configuration** (redirect / site URL) when you deploy.
+
+### Supabase CLI
+
+This repo includes [`supabase/config.toml`](supabase/config.toml) and [`supabase/.gitignore`](supabase/.gitignore) for local tooling, similar in layout to other projects — **do not paste SQL from unrelated apps** into this project’s database.
+
+- Link and push migrations: `supabase link` then `supabase db push` (or run files in `supabase/migrations/` manually).
+- If you prefer the dashboard: you can paste the companion script for focus snapshots from [`docs/supabase-room-member-focus.sql`](docs/supabase-room-member-focus.sql) (in addition to the migrations folder).
+
 Run the Supabase migrations in `supabase/migrations/` against your project (via the [Supabase CLI](https://supabase.com/docs/guides/cli) or the dashboard SQL editor), then start the dev server:
 
 ```bash
@@ -65,7 +74,15 @@ Open [http://localhost:3000](http://localhost:3000).
 
 1. Open `chrome://extensions` → enable **Developer mode**
 2. Click **Load unpacked** → select the `extension/` folder
-3. The extension reports your active tab domain to the app every 5 seconds during focus sessions
+3. **Local dev:** open [http://localhost:3000](http://localhost:3000) once so the extension stores `app_origin`.
+4. **Vercel:** after deploy, open your production URL once (while logged in). The extension uses that origin for `/api/activity` and domain lists. See [`extension/README.md`](extension/README.md) for custom domains and permissions.
+5. The background worker polls the active tab on a **short interval** (target ~15s; the browser may throttle alarms slightly).
+
+### Deploying to Vercel
+
+- Create a Vercel project from this repo and set `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` (and optionally `NEXT_PUBLIC_APP_URL`).
+- In Supabase Auth settings, add your Vercel domain to redirect allow lists.
+- Run all SQL migrations against your hosted Supabase project before relying on live **member focus** (`room_member_focus`) or **Realtime** on `room_members` / `rooms`.
 
 ## Project Structure
 
@@ -106,6 +123,7 @@ The schema uses PostgreSQL with Row Level Security. Key tables:
 - `room_members` — Join/leave tracking with roles
 - `messages` — Real-time chat per room
 - `room_rules` / `user_rules` — Allowed/blocked domain lists
+- `room_member_focus` — Latest focus classification per member per room (updated from `/api/activity`; subscribed over Realtime in the room UI)
 - `friends` — Bidirectional friend relationships with status
 
 All mutations go through RLS policies or the `create_room` RPC function.

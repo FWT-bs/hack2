@@ -1,25 +1,26 @@
 // LockIn — reports current tab domain to app.
-// When linked: pass user_id and optional room_id so the app can use DB rules.
-// See README in extension folder for device-linking flow.
+// app_origin is set when you open the web app (content.js); loaded fetches use it + session cookies.
 
-const API_BASE = "http://localhost:3000";
-const ALARM_NAME = "lockin-monitor";
+const DEFAULT_APP_ORIGIN = "http://localhost:3000";
+const POLL_ALARM = "lockin-monitor-tick";
+/** ~15s cadence (fractional minutes; Chrome may clamp — still better than 1m repeat alarms). */
+const POLL_DELAY_MINUTES = 15 / 60;
 
-chrome.alarms.create(ALARM_NAME, { periodInMinutes: 5 / 60 });
-
-async function getStoredContext() {
-  const out = await chrome.storage.local.get(["user_id", "room_id"]);
-  return { user_id: out.user_id || null, room_id: out.room_id || null };
+async function getApiBase() {
+  const { app_origin } = await chrome.storage.local.get(["app_origin"]);
+  const o = typeof app_origin === "string" ? app_origin.trim().replace(/\/$/, "") : "";
+  if (o && /^https?:\/\//i.test(o)) return o;
+  return DEFAULT_APP_ORIGIN;
 }
 
-chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name !== ALARM_NAME) return;
+function scheduleNextPoll() {
+  chrome.alarms.create(POLL_ALARM, { delayInMinutes: POLL_DELAY_MINUTES });
+}
 
+async function runActivityPoll() {
   try {
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
+    const apiBase = await getApiBase();
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
     if (!tab?.url) return;
 
@@ -36,7 +37,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     if (user_id) body.user_id = user_id;
     if (room_id) body.room_id = room_id;
 
-    const response = await fetch(`${API_BASE}/api/activity`, {
+    const response = await fetch(`${apiBase}/api/activity`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -45,7 +46,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
     if (response.ok) {
       const result = await response.json();
-      chrome.storage.local.set({
+      await chrome.storage.local.set({
         focusState: result.focusState,
         lastDomain: domain,
         lastDomainStatus: result.status,
@@ -61,13 +62,53 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   } catch (err) {
     console.error("LockIn monitor error:", err);
   }
+}
+
+async function getStoredContext() {
+  const out = await chrome.storage.local.get(["user_id", "room_id"]);
+  return { user_id: out.user_id || null, room_id: out.room_id || null };
+}
+
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name !== POLL_ALARM) return;
+  await runActivityPoll();
+  scheduleNextPoll();
 });
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.set({ active: false, focusState: "on-task" });
+  scheduleNextPoll();
 });
 
+chrome.runtime.onStartup.addListener(() => {
+  scheduleNextPoll();
+});
+
+// First run after SW wakes
+scheduleNextPoll();
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.type === "SET_APP_ORIGIN") {
+    (async () => {
+      try {
+        const raw = message.origin;
+        if (typeof raw !== "string") return { ok: false, error: "missing origin" };
+        const origin = raw.trim().replace(/\/$/, "");
+        if (!/^https?:\/\//i.test(origin)) return { ok: false, error: "invalid origin" };
+        await chrome.storage.local.set({ app_origin: origin });
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, error: String(e) };
+      }
+    })().then(sendResponse);
+    return true;
+  }
+
+  if (message.type === "GET_APP_ORIGIN") {
+    getApiBase().then((origin) => sendResponse({ origin }));
+    return true;
+  }
+
   if (message.type === "GET_CURRENT_TAB") {
     (async () => {
       try {
@@ -114,13 +155,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === "GET_FOCUS_STATE") {
     (async () => {
       try {
+        const apiBase = await getApiBase();
         const hostname = message.hostname || "";
         if (!hostname) return { focusState: "on-task", status: "unlisted" };
         const { user_id, room_id } = await getStoredContext();
         const body = { domain: hostname };
         if (user_id) body.user_id = user_id;
         if (room_id) body.room_id = room_id;
-        const response = await fetch(`${API_BASE}/api/activity`, {
+        const response = await fetch(`${apiBase}/api/activity`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -137,8 +179,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === "GET_DOMAIN_LISTS") {
     (async () => {
       try {
+        const apiBase = await getApiBase();
         const { room_id } = await getStoredContext();
-        let url = `${API_BASE}/api/activity/domains`;
+        let url = `${apiBase}/api/activity/domains`;
         if (room_id) url += `?room_id=${encodeURIComponent(room_id)}`;
         const response = await fetch(url, { credentials: "include" });
         if (!response.ok) return { allowed: [], blocked: [] };
@@ -152,8 +195,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === "FOCUS_EVENT") {
     (async () => {
       try {
+        const apiBase = await getApiBase();
         const payload = message.payload || {};
-        await fetch(`${API_BASE}/api/focus-events`, {
+        await fetch(`${apiBase}/api/focus-events`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",

@@ -28,11 +28,27 @@ export async function POST(request: NextRequest) {
       status = classifyDomain(domain)
     }
 
-    let focusState = "on-task"
+    let focusState: "on-task" | "warning" | "locked" | "approved-break" = "on-task"
     if (status === "blocked") focusState = "locked"
     else if (status === "unlisted") focusState = "warning"
 
     if (!user) setFocusState(focusState)
+    else if (user && roomId) {
+      const { error: focusErr } = await supabase.from("room_member_focus").upsert(
+        {
+          room_id: roomId,
+          user_id: user.id,
+          focus_state: focusState,
+          tab_domain: domain.length > 500 ? domain.slice(0, 500) : domain,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "room_id,user_id" }
+      )
+      if (focusErr && process.env.NODE_ENV === "development") {
+        console.warn("[activity] room_member_focus upsert:", focusErr.message)
+      }
+    }
+
     return NextResponse.json({ status, focusState })
   } catch {
     return NextResponse.json({ error: "Bad request" }, { status: 400 })

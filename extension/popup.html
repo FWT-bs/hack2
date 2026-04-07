@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>grouplock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -36,7 +39,7 @@
     body {
       width: 300px;
       min-height: 200px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
       background: var(--bg);
       color: var(--fg);
       padding: 16px 18px 18px;
@@ -117,14 +120,14 @@
     .section:nth-child(3) { animation-delay: 100ms; }
     .section:nth-child(4) { animation-delay: 150ms; }
 
-    .label {
-      font-size: 9px;
+    .label, .section-label {
+      font-size: 10px;
       text-transform: uppercase;
-      letter-spacing: 0.14em;
+      letter-spacing: 0.12em;
       color: var(--muted);
       font-weight: 600;
       margin-bottom: 5px;
-      font-family: 'SF Mono', 'Fira Code', 'Menlo', monospace;
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
     }
 
     /* Focus state pill */
@@ -133,7 +136,7 @@
       align-items: center;
       gap: 6px;
       padding: 4px 10px 4px 7px;
-      border-radius: 3px;
+      border-radius: 6px;
       font-size: 12px;
       font-weight: 600;
       border: 1px solid var(--border);
@@ -164,7 +167,7 @@
       font-size: 12px;
       font-weight: 500;
       color: var(--fg);
-      font-family: 'SF Mono', 'Fira Code', 'Menlo', monospace;
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -174,7 +177,7 @@
       font-size: 9px;
       font-weight: 600;
       padding: 2px 7px;
-      border-radius: 3px;
+      border-radius: 6px;
       border: 1px solid var(--border);
       font-family: 'SF Mono', 'Fira Code', 'Menlo', monospace;
       text-transform: uppercase;
@@ -196,7 +199,7 @@
       background: var(--fg);
       color: var(--bg);
       border: none;
-      border-radius: 3px;
+      border-radius: 6px;
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;

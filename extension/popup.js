@@ -52,7 +52,7 @@ async function render() {
     domainSection = `
       <div class="divider"></div>
       <div class="section">
-        <div class="section-label">Current domain</div>
+        <div class="label">Current domain</div>
         <div class="domain-row">
           <span class="domain-name">${data.lastDomain}</span>
           <span class="domain-badge ${statusClass}">${statusLabel}</span>
@@ -64,7 +64,7 @@ async function render() {
   // Build room CTA
   const ctaSection = data.roomUrl
     ? `<a href="${data.roomUrl}" target="_blank" class="cta">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
         </svg>
         Open Study Room
@@ -73,7 +73,7 @@ async function render() {
 
   content.innerHTML = `
     <div class="section">
-      <div class="section-label">Focus status</div>
+      <div class="label">Focus status</div>
       <div class="focus-pill ${focusState}">
         <span class="pill-dot"></span>
         ${focusLabel}

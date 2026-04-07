@@ -2,6 +2,20 @@
 
 The extension helps during focus sessions by reporting your current tab to the app and showing a gentle overlay when you visit blocked sites. It only runs when you're in a session; it does not monitor 24/7.
 
+## Production URL (Vercel)
+
+API calls use a stored **`app_origin`** (e.g. `https://your-app.vercel.app`). It is set automatically when you **open the deployed site** with the extension installed: the in-app content script sends `window.location.origin` to the background worker.
+
+- Stay **logged in** on that origin so `credentials: "include"` sends your session cookies to `/api/activity` and `/api/focus-events`.
+- Default fallback is `http://localhost:3000` until you’ve opened the app once on production.
+- **Custom domain**: add your origin to `manifest.json` under `content_scripts` (app entry), `externally_connectable`, and `host_permissions`. For broad HTTPS access, Chrome may prompt you to allow **optional host permissions** after install (`https://*/*` is listed as optional).
+
+Optional env in the Next app (documentation only; not read by the extension): `NEXT_PUBLIC_APP_URL` — set on Vercel to your canonical site URL for links and auth redirects in the web app.
+
+## Polling
+
+The service worker schedules **short-interval chained alarms** (target ~15 seconds) to POST the active tab domain. Browsers may clamp alarm timing; if updates feel slow, open the app popup — it also refreshes when storage changes after each successful poll.
+
 ## Linking your browser (device link flow)
 
 To use room-level and personal rules from the app (instead of demo defaults), link this browser to your account:
@@ -19,8 +33,9 @@ Until linking is implemented end-to-end, the extension works in demo mode: it se
 The app can set the extension's context by sending a message to the extension (e.g. when the user joins a room):
 
 - `SET_LINK_CONTEXT`: pass `{ user_id, room_id? }` so the extension includes them in API calls. This requires the extension to be able to receive messages from the app (e.g. via a content script on the app origin).
+- `SET_APP_ORIGIN` / `GET_APP_ORIGIN`: used internally so overlay + fetches share the same base URL as the web app.
 
 ## API payloads
 
-- **POST /api/activity**: body may include `domain`, `url`, `user_id`, `room_id`. When `user_id` and `room_id` are present and the request is authorized (e.g. via device token), the server uses `room_rules` and `user_rules` from the database to classify the domain.
+- **POST /api/activity**: body may include `domain`, `url`, `user_id`, `room_id`. When the request is authenticated (session cookie), the server uses `room_rules` and `user_rules` from the database to classify the domain and upserts **`room_member_focus`** for live member state in the room UI.
 - **GET /api/activity/domains**: optional query `room_id=`. When the request is authenticated (cookie or device token), returns merged allowed/blocked lists for that room and the current user.
